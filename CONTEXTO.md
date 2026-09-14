@@ -1,0 +1,117 @@
+# CONTEXTO — análisis_pruebas_aprender
+
+Documento de contexto de datos para orientar el trabajo de consolidación y análisis.
+Complementa al `README.md` (visión general) con el detalle de convenciones y decisiones.
+
+---
+
+## 1. Qué son estos datos
+
+Dos orígenes oficiales de la Secretaría de Educación de la Nación (Argentina):
+
+1. **Pruebas APRENDER** — operativo nacional de evaluación de aprendizajes. Bases con
+   resultados de desempeño (Lengua, Matemática, Ciencias) y cuestionarios complementarios (CC).
+2. **Estadística educativa** — series anuales de matrícula, cargos docentes, población de
+   referencia y trayectoria escolar.
+
+Todas las bases `.xlsx` son **agregadas/anonimizadas**. Los `.sav` son **microdato individual**
+anonimizado (formato SPSS).
+
+---
+
+## 2. Convención de nombres de las bases APRENDER
+
+El nombre del archivo codifica las dimensiones del operativo:
+
+```
+<AÑO> Base APRENDER - <COBERTURA> - <NIVEL> <GRADO> - Agregada - <CONTENIDO>.xlsx
+```
+
+- **AÑO:** 2016–2025 (sin 2020).
+- **COBERTURA:** `Censal` (todo el universo) | `Muestral` / `Muestra` (muestra representativa).
+- **NIVEL:** `Primaria` | `Secundaria`.
+- **GRADO:** `3 grado`, `6 grado`, `5-6 año`, `2-3 año`.
+- **CONTENIDO:**
+  - `Desempeños de Lengua`
+  - `Desempeños de Matematica`
+  - `Desempeños de Ciencias Naturales`
+  - `Desempeños de Ciencias Sociales`
+  - `Desempeños de Ciudadania`
+  - `Solo CC` → cuestionarios complementarios (contexto socioeducativo, no desempeño)
+
+> Ojo con las irregularidades de nombrado en la fuente:
+> - 2016–2018 no siempre traen la palabra `Censal`/`Muestral`.
+> - `2019 ... Muestral  - Secundaria` tiene doble espacio.
+> - `2024 ... Primaria 3 grado - Agregada - Solo CC.csv.xlsx` arrastra `.csv` en el nombre.
+> - 2016–2017 no traen el **grado** y 2018 no trae **ni nivel ni grado**; 2016 escribe `3grado` sin espacio.
+>   El notebook 00 completa: 2016/2017 Primaria = `6 grado`, Secundaria = `5-6 año`; 2018 = Primaria `6 grado`
+>   (verificado por edad modal declarada: 11 años / 17 años). Columna `nivel_grado_inferido` del catálogo.
+> Estas variaciones hay que normalizarlas al parsear.
+
+---
+
+## 3. Convención de la estadística agregada
+
+```
+<AÑO> <CORTE> - agregada.xlsx
+```
+
+Cortes: `Caracteristicas`, `Cargos`, `Cargos Bis`, `Matricula`, `Matricula por edad`,
+`Poblacion`, `Trayectoria`. Presentes de forma bastante regular en 2011–2025.
+
+---
+
+## 4. Escala de desempeño APRENDER
+
+Los resultados suelen expresarse en **niveles de desempeño**:
+`Por debajo del básico`, `Básico`, `Satisfactorio`, `Avanzado`
+(verificar etiquetas exactas en el diccionario de cada año, pueden variar).
+
+---
+
+## 5. Decisiones y advertencias
+
+- **`Base_publica_Ap2024.sav` (117 MB)** → excluido de git (`.gitignore`) por superar el
+  límite de 100 MB de GitHub. Vive solo en local.
+- **Comparabilidad temporal:** los operativos cambian de nivel/grado/cobertura año a año, por
+  lo que **no todas las series son directamente comparables**. Verificar universo antes de
+  comparar (ver notas metodológicas en los PDF).
+- **2020 sin APRENDER** por la pandemia.
+- Consultar siempre los diccionarios (`Diccionario ... .xlsx`) y las advertencias
+  metodológicas antes de interpretar resultados.
+
+---
+
+## 6. Herramientas sugeridas
+
+- `.xlsx` → `pandas.read_excel(..., engine='calamine')` (5-10x más rápido que openpyxl; necesario
+  para los APRENDER de 1000+ columnas).
+- `.sav` → `pyreadstat.read_sav` (datos + metadatos con etiquetas) o `pandas.read_spss`.
+- Para outputs grandes, usar `ctx_execute` (context-mode) en vez de imprimir en consola.
+
+## 7. Consolidación (notebook 00)
+
+El notebook `00_consolidacion.ipynb` deja todo en `datos_consolidados/`:
+
+- **RA → ancho** (7 parquet, un base por archivo, años apilados). Conteos absolutos.
+- **APRENDER → largo/tidy** (particionado por año). Conteos ponderados; columna `tipo_variable`
+  distingue `desempeño` / `contexto` / `nse` / `nivel_educativo_hogar` / `otro`.
+- **`diccionario_maestro.xlsx`** — significado y unidad de cada variable (join por `variable`/`campo`).
+- **Nivel/grado 2016–2018:** se completan cuando el nombre del archivo no los trae (verificado por edad modal;
+  columna `nivel_grado_inferido` del catálogo). Firma de verificación de referencia: `bdedd07f319c`.
+
+Detalle de esquemas y ejemplos de uso en `datos_consolidados/README.md`.
+
+## 8. Análisis (notebooks 01 y 02)
+
+- **`01_analisis.ipynb` — trayectorias:** series RA (matrícula, repitencia y abandono por **ciclo lectivo**,
+  cargos docentes, horas y módulos) y desempeño APRENDER en las cohortes comparables (Primaria 6° Censal
+  2016/2018/2021/2023/2025; Secundaria 5-6° Censal 2016/2017/2019/2022/2024). Genera el catálogo
+  `variables_disponibles.xlsx` con todas las variables y su significado.
+- **`02_brechas.ipynb` — brechas:** % Satisfactorio+Avanzado por sector, ámbito y provincia en esas cohortes.
+- **Advertencias de interpretación clave:**
+  - *Cargos Bis*: `total` mezcla cargos, horas cátedra y módulos → separar por `tipo`.
+  - Base *Trayectoria* del año *t* = ciclo lectivo *t−1*.
+  - El nivel socioeconómico **no** se puede cruzar con el desempeño en las bases agregadas (solo con microdatos).
+  - Matemática Secundaria 2022 sin nivel Avanzado; Chubut sin datos en Secundaria 2019; no hay diccionario 2025.
+- Lista completa de trampas y números de control: `ESTADO.md` (§5 y §6).
