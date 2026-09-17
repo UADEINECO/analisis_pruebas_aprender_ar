@@ -8,12 +8,14 @@ Instrucciones para Claude Code en este repositorio (se cargan solas al abrir el 
 2. `git fetch && git status -sb` para confirmar que el local está al día con `origin/main`.
 3. Contexto de datos (familias, nombres de archivo, diccionarios): [`CONTEXTO.md`](CONTEXTO.md) y
    [`datos_consolidados/README.md`](datos_consolidados/README.md).
+4. En una PC nueva: `pip install -r requirements.txt`; correr el 00 en local si hacen falta `datos_consolidados/` (≈ 5 min);
+   para 06/07 en local copiar `Base_publica_Ap2024.sav` o los zip `2024 Base de microdatos Aprender primaria.zip` y `2024 Base de microdatos Aprender secundaria.zip` a `resultados_aprender/` (no están en git).
 
 ## Qué es
 Consolidación (`00_consolidacion.ipynb`) y análisis **descriptivo** (`01_analisis.ipynb` trayectorias,
-`02_brechas.ipynb` brechas) de las Pruebas APRENDER 2016–2025 y el Relevamiento Anual (RA) 2011–2025 de la
+`02_brechas.ipynb` brechas, `03_provincias.ipynb` provincias y contexto, `04_contexto.ipynb` contexto del estudiante en el tiempo, `05_asociaciones.ipynb` asociaciones entre cambios de contexto y desempeño, `06_microdatos.ipynb` desempeño × contexto por estudiante con microdatos 2024, `07_explorador_microdatos.ipynb` explorador interactivo con menús de esos microdatos) de las Pruebas APRENDER 2016–2025 y el Relevamiento Anual (RA) 2011–2025 de la
 Secretaría de Educación de la Nación (Argentina). El usuario corre los notebooks en **Google Colab**: el 00 guarda en
-*Mi unidad/`pruebas_aprender`* y el 01/02 leen de ahí.
+*Mi unidad/`pruebas_aprender`* y el 01 a 05 leen de ahí. El 06 y el 07 leen de la misma carpeta los zip `2024 Base de microdatos Aprender primaria.zip` y `2024 Base de microdatos Aprender secundaria.zip` (subidos por el usuario).
 
 ## Reglas del usuario (obligatorias)
 - Responder y documentar en **español**.
@@ -25,8 +27,11 @@ Secretaría de Educación de la Nación (Argentina). El usuario corre los notebo
 
 ## Forma de trabajar (probada)
 - **Editar notebooks con scripts Python guardados en archivo** que usan `nbformat` (leer → modificar `cell.source` con
-  asserts de contenido → `nbformat.validate` → escribir). **No** pasar código con heredoc sin comillas por bash
-  (se comen los backticks y los `\n`). Para notebooks nuevos, generar las celdas con `nbformat.v4`.
+  asserts de contenido → `nbformat.validate` → escribir). **No** pasar código con heredoc por bash (se comen los
+  backticks, los `\n` y hasta `\\` con `<<'EOF'`): escribir el script con la herramienta de archivos.
+- **Notebooks 04–07 tienen generador en `scripts/generar_0X_*.py`** (celdas con `nbformat.v4`; `--debug` los ejecuta como
+  script). Si se cambia un notebook generado, cambiar **también** el generador (o regenerar desde él) para que no
+  diverjan. Para notebooks nuevos: copiar el patrón de un generador. 00–03 se editan directo con `nbformat`.
 - **Ejecutar y validar localmente** antes de commitear, y versionar el notebook **ejecutado**:
   `python -m jupyter nbconvert --to notebook --execute --inplace <nb>.ipynb --ExecutePreprocessor.timeout=1800`
   Luego revisar salidas (errores, `stderr`, tablas clave) y mirar los PNG generados.
@@ -34,9 +39,9 @@ Secretaría de Educación de la Nación (Argentina). El usuario corre los notebo
 - Mensajes de commit largos: escribir a un archivo y `git commit -F archivo` (en PowerShell los here-strings pueden
   ser bloqueados por un hook; usar Bash).
 - Colab trunca la salida de una celda a ~5.000 líneas: partir impresiones largas en varias celdas.
-- **Validar corridas de Colab:** pedir al usuario los zips (`graficos_*.zip` y, del Drive, `parquet/` y `excel/`) y
-  compararlos archivo por archivo contra lo local con scripts (parquet con `assert_frame_equal`; Excel regenerando la
-  receta de `exportar_resultados` del 00). Última validación completa: 2026-09-14 (todo idéntico).
+- **Validar corridas de Colab:** pedir al usuario el Excel del zip de salida y correr
+  `python scripts/comparar_excel.py <colab.xlsx> <local.xlsx>` (hoja por hoja, exacto). Para el 00, comparar `parquet/` y
+  `excel/` del Drive; para el 07 (sin Excel), comparar el texto de las salidas pegado por el usuario. Última validación completa: 2026-09-14 (00–02); 03 a 07 el 2026-09-16 (Excel / salidas idénticas).
 - **pyarrow `group_by` con hilos no garantiza el orden de salida:** si el orden importa, archivos en orden fijo +
   `group_by(..., use_threads=False)` + `sort_values(..., kind='stable')`.
 
@@ -47,6 +52,12 @@ Secretaría de Educación de la Nación (Argentina). El usuario corre los notebo
 - Desempeño × NSE no se puede cruzar en los agregados (solo microdatos).
 - Nombres de provincia inconsistentes entre años → normalizar.
 - Matemática Secundaria 2022 sin nivel Avanzado; Chubut sin Secundaria 2019; sin diccionario 2025.
+- Cuestionario Primaria 2025 renumerado (códigos deducidos por opciones); jornada extendida del RA por provincia no confiable.
+- Cambios parejos en las 24 provincias entre dos operativos = probable cambio de cuestionario (Primaria 2023→2025: madre, libros).
+- RA: egresados de primaria de los ciclos 2010–2012 incompletos (provincias con 0); sobreedad secundaria de Santa Cruz 2025 atípica;
+  alumnos por maestro en Buenos Aires ≈ 26 hasta 2022 → 18,4 en 2025 (probable cambio de reporte).
+- Correlaciones entre 24 provincias: con ~100 comparaciones, ~5 dan p < 0,05 por azar → permutaciones + Benjamini-Hochberg
+  y control del punto de partida (frente a pares) antes de afirmar nada (05).
 
 ## Al terminar una sesión
 Actualizar `ESTADO.md` (estado, próximos pasos, bitácora) y `.claude/memory/project.md`; commitear y pushear si el

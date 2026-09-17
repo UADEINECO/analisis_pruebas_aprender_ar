@@ -6,6 +6,8 @@
 # de 100 MB por archivo de GitHub. Se conserva en local pero no
 # se versiona. El resto de las bases sí se suben.
 resultados_aprender/Base_publica_Ap2024.sav
+# Zips oficiales de microdatos 2024 (si se copian a resultados_aprender/ para correr 06/07 en local)
+resultados_aprender/*icrodatos*.zip
 
 # Si en el futuro se agregan otros .sav grandes, descomentar:
 # *.sav
@@ -19,11 +21,24 @@ datos_consolidados/aprender_long/
 datos_consolidados/*.parquet
 # (se conservan diccionario_maestro.xlsx, catalogo_archivos.csv y README.md)
 
-# Gráficos y tablas exportados por 01_analisis.ipynb y 02_brechas.ipynb (regenerables)
+# Gráficos y tablas exportados por los notebooks 01 a 04 (regenerables)
 graficos_trayectorias/
 graficos_trayectorias.zip
 graficos_brechas/
 graficos_brechas.zip
+graficos_provincias/
+graficos_provincias.zip
+graficos_contexto/
+graficos_contexto.zip
+graficos_asociaciones/
+graficos_asociaciones.zip
+graficos_microdatos/
+graficos_microdatos.zip
+microdatos_2024_tmp/
+# Tablas descargadas desde el explorador (07)
+cruce_*.xlsx
+# Salida de scripts/listar_cuestionario.py
+cuestionario_por_anio.*
 
 # ==============================================================
 # Python / Jupyter
